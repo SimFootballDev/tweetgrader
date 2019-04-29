@@ -28,23 +28,23 @@ class TweetGraderApplication {
 
     @RequestMapping("/")
     fun getIndex(): String {
-        // fixme
-        return ""
+        return "<form action=/tweets>Post URL<br><input name=postUrl><br><br>Start Date (Sunday)<br><input name=startDate type=date><br><br><input type=submit></form>"
     }
 
     @RequestMapping("/tweets")
-    fun getTweets(@RequestParam startDate: String, @RequestParam postId: String): String {
+    fun getTweets(@RequestParam startDate: String, @RequestParam postUrl: String): String {
 
-        val dateFormat = SimpleDateFormat("MM/dd/yyyy")
+        val inputDateFormat = SimpleDateFormat("yyyy-MM-dd")
+        val outputDateFormat = SimpleDateFormat("MM/dd/yyyy")
 
         val start = Calendar.getInstance()
-        start.timeInMillis = dateFormat.parse(startDate).time
+        start.timeInMillis = inputDateFormat.parse(startDate).time
         start.set(Calendar.HOUR_OF_DAY, 0)
         start.set(Calendar.MINUTE, 0)
         start.set(Calendar.SECOND, 0)
 
         val end = Calendar.getInstance()
-        end.timeInMillis = dateFormat.parse(startDate).time
+        end.timeInMillis = inputDateFormat.parse(startDate).time
         end.set(Calendar.HOUR_OF_DAY, 23)
         end.set(Calendar.MINUTE, 59)
         end.set(Calendar.SECOND, 59)
@@ -65,8 +65,8 @@ class TweetGraderApplication {
                                 "'${tweet.favoriteCount}', '${tweet.retweetCount}', '']"
                     }
                 },
-                dateFormat.format(start.timeInMillis) +
-                        " - " + dateFormat.format(end.timeInMillis)
+                outputDateFormat.format(start.timeInMillis) +
+                        " - " + outputDateFormat.format(end.timeInMillis)
         )
     }
 
