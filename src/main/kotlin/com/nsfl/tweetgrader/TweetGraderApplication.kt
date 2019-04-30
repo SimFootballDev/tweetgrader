@@ -113,10 +113,11 @@ class TweetGraderApplication {
             }
 
             if (tweetList.isEmpty()) {
-                "['${entry.key.replace("'", "\\'")}', 'Link', 'Could not parse this user’s tweets.', '0', '0', '']"
+                "['${entry.key.replace("'", "\\'")}', 'Link', " +
+                        "'<font color=\"red\"><b>Could not parse this user’s tweets</b></font>.', '0', '0', '']"
             } else {
                 tweetList.joinToString(",") { tweet ->
-                    "['${entry.key.replace("'", "\\'")}', " +
+                    "['<a href=\"https://www.twitter.com/${entry.value}\">${entry.key.replace("'", "\\'")}</a>', " +
                             "'<a href=\"https://www.twitter.com/${entry.value}/status/${tweet.id}\">Link</a>', " +
                             "'${tweet.text.replace("'", "\\'").replace("\n", " ")}', " +
                             "'${tweet.favoriteCount}', '${tweet.retweetCount}', '']"
