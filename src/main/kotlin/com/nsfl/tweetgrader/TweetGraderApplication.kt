@@ -56,7 +56,7 @@ class TweetGraderApplication {
         end.set(Calendar.SECOND, 59)
         end.add(Calendar.DAY_OF_YEAR, 6)
 
-        val userList = ArrayList<Pair<String, String>>()
+        val userMap = HashMap<String, String>()
         val documentList = ArrayList<Document>()
 
         val firstDocument = Jsoup.connect(postUrl).get()
@@ -97,15 +97,15 @@ class TweetGraderApplication {
                         }
                         index++
                     }
-                    userList.add(Pair(element.getElementsByClass("normalname").text(), twitter))
+                    userMap[element.getElementsByClass("normalname").text()] = twitter
                 }
             }
         }
 
-        return TWEETS_HTML.format(userList.joinToString(",") { pair ->
+        return TWEETS_HTML.format(userMap.entries.joinToString(",") { entry ->
 
             val tweetList = try {
-                twitter.timelines().getUserTimeline(pair.second, Paging(1, 200)).map { it }.filter {
+                twitter.timelines().getUserTimeline(entry.value, Paging(1, 200)).map { it }.filter {
                     it.createdAt.time > start.timeInMillis && it.createdAt.time < end.timeInMillis
                 }
             } catch (exception: Exception) {
@@ -113,11 +113,11 @@ class TweetGraderApplication {
             }
 
             if (tweetList.isEmpty()) {
-                "['${pair.first.replace("'", "\\'")}', 'Link', 'Could not parse this user’s tweets.', '0', '0', '']"
+                "['${entry.key.replace("'", "\\'")}', 'Link', 'Could not parse this user’s tweets.', '0', '0', '']"
             } else {
                 tweetList.joinToString(",") { tweet ->
-                    "['${pair.first.replace("'", "\\'")}', " +
-                            "'<a href=\"https://www.twitter.com/${pair.second}/status/${tweet.id}\">Link</a>', " +
+                    "['${entry.key.replace("'", "\\'")}', " +
+                            "'<a href=\"https://www.twitter.com/${entry.value}/status/${tweet.id}\">Link</a>', " +
                             "'${tweet.text.replace("'", "\\'").replace("\n", " ")}', " +
                             "'${tweet.favoriteCount}', '${tweet.retweetCount}', '']"
                 }
