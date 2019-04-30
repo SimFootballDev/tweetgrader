@@ -17,7 +17,7 @@ import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-private const val TWEETS_HTML = "<!doctypehtml><link href=https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css rel=stylesheet><link href=https://cdn.datatables.net/select/1.3.0/css/select.dataTables.min.css rel=stylesheet><link href=https://cdn.datatables.net/buttons/1.5.6/css/buttons.dataTables.min.css rel=stylesheet><script src=https://code.jquery.com/jquery-3.3.1.js></script><script src=https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js></script><script src=https://cdn.datatables.net/select/1.3.0/js/dataTables.select.min.js></script><script src=https://cdn.datatables.net/buttons/1.5.6/js/dataTables.buttons.min.js></script><script class=init>var dataSet = [%s]; \$(document).ready(function() { var table = \$('#table').DataTable({ paging: false, order: [ [0, \"asc\"] ], data: dataSet, columns: [ { title: 'Username' }, { title: 'Link' }, { title: 'Content' }, { title: 'Likes' }, { title: 'Retweets' }, { title: '' }], columnDefs: [ { orderable: false, className: 'select-checkbox', targets: 5 } ], select: { style: 'multi' }, dom: 'Bfrtip', buttons: [ 'selectAll', 'selectNone' , { text: 'Generate payouts', action: function () { var selected = table.rows( { selected: true } ); var usernameList = \"\"; for (var i = 0; i < selected.count(); i++) { usernameList += selected.data()[i][0] + ','; } window.location.assign('/payouts?usernameList=' + usernameList + '&dateRange=%s'); } } ] }) });</script><style>div{padding-left:5%%;padding-right:5%%;padding-top:.5%%;padding-bottom:.5%%}</style><div><table class=\"celled table ui\"id=table width=100%%></table></div>"
+private const val TWEETS_HTML = "<!doctypehtml><link href=https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css rel=stylesheet><link href=https://cdn.datatables.net/select/1.3.0/css/select.dataTables.min.css rel=stylesheet><link href=https://cdn.datatables.net/buttons/1.5.6/css/buttons.dataTables.min.css rel=stylesheet><script src=https://code.jquery.com/jquery-3.3.1.js></script><script src=https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js></script><script src=https://cdn.datatables.net/select/1.3.0/js/dataTables.select.min.js></script><script src=https://cdn.datatables.net/buttons/1.5.6/js/dataTables.buttons.min.js></script><script class=init>var dataSet = [%s]; \$(document).ready(function() { var table = \$('#table').DataTable({ paging: false, order: [ [0, \"asc\"] ], data: dataSet, columns: [ { title: 'Username' }, { title: 'Account' }, { title: 'Tweet' }, { title: 'Content' }, { title: 'Likes' }, { title: 'Retweets' }, { title: '' }], columnDefs: [ { orderable: false, className: 'select-checkbox', targets: 6 } ], select: { style: 'multi', selector: 'td:last-child' }, dom: 'Bfrtip', buttons: [ 'selectAll', 'selectNone' , { text: 'Generate payouts', action: function () { var selected = table.rows( { selected: true } ); var usernameList = \"\"; for (var i = 0; i < selected.count(); i++) { usernameList += selected.data()[i][0] + ','; } window.location.assign('/payouts?usernameList=' + usernameList + '&dateRange=%s'); } } ] }) });</script><style>div{padding-left:5%%;padding-right:5%%;padding-top:.5%%;padding-bottom:.5%%}</style><div><table class=\"celled table ui\"id=table width=100%%></table></div>"
 
 @RestController
 @SpringBootApplication
@@ -117,14 +117,17 @@ class TweetGraderApplication {
             }
 
             if (tweetList.isEmpty()) {
-                "['${entry.key.replace("'", "\\'")}', 'Link', " +
+                "['${entry.key.replace("'", "\\'")}', '', '', " +
                         "'<font color=\"red\"><b>Could not parse this user’s tweets</b></font>.', '0', '0', '']"
             } else {
                 tweetList.joinToString(",") { tweet ->
-                    "['<a href=\"https://www.twitter.com/${entry.value}\">${entry.key.replace("'", "\\'")}</a>', " +
+                    "['${entry.key.replace("'", "\\'")}', " +
+                            "'<a href=\"https://www.twitter.com/${entry.value}\">Link</a>', " +
                             "'<a href=\"https://www.twitter.com/${entry.value}/status/${tweet.id}\">Link</a>', " +
                             "'${tweet.text.replace("'", "\\'").replace("\n", " ")}', " +
-                            "'${tweet.favoriteCount}', '${tweet.retweetCount}', '']"
+                            "'${tweet.favoriteCount}', " +
+                            "'${tweet.retweetCount}', " +
+                            "'']"
                 }
             }
         },
