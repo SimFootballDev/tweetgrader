@@ -7,6 +7,7 @@ import org.springframework.boot.runApplication
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import twitter4j.Paging
 import twitter4j.Status
 import twitter4j.TwitterFactory
 import twitter4j.conf.ConfigurationBuilder
@@ -101,26 +102,27 @@ class TweetGraderApplication {
             }
         }
 
-        return TWEETS_HTML.format(
-                userList.joinToString(",") { pair ->
-                    val tweetList = try {
-                        twitter.timelines().getUserTimeline(pair.second).map { it }
-                    } catch (exception: Exception) {
-                        arrayListOf<Status>()
-                    }
-                    if (tweetList.isEmpty()) {
-                        "['${pair.first}', 'Link', 'Could not parse this user’s tweets.', '0', '0', '']"
-                    } else {
-                        tweetList.filter {
-                            it.createdAt.time > start.timeInMillis && it.createdAt.time < end.timeInMillis
-                        }.joinToString(",") { tweet ->
-                            "['${pair.first}', " +
-                                    "'<a href=\"https://www.twitter.com/${pair.second}/status/${tweet.id}\">Link</a>', " +
-                                    "'${tweet.text.replace("'", "’").replace("\n", " ")}', " +
-                                    "'${tweet.favoriteCount}', '${tweet.retweetCount}', '']"
-                        }
-                    }
-                },
+        return TWEETS_HTML.format(userList.joinToString(",") { pair ->
+
+            val tweetList = try {
+                twitter.timelines().getUserTimeline(pair.second, Paging(1, 200)).map { it }.filter {
+                    it.createdAt.time > start.timeInMillis && it.createdAt.time < end.timeInMillis
+                }
+            } catch (exception: Exception) {
+                arrayListOf<Status>()
+            }
+
+            if (tweetList.isEmpty()) {
+                "['${pair.first.replace("'", "\\'")}', 'Link', 'Could not parse this user’s tweets.', '0', '0', '']"
+            } else {
+                tweetList.joinToString(",") { tweet ->
+                    "['${pair.first.replace("'", "\\'")}', " +
+                            "'<a href=\"https://www.twitter.com/${pair.second}/status/${tweet.id}\">Link</a>', " +
+                            "'${tweet.text.replace("'", "\\'").replace("\n", " ")}', " +
+                            "'${tweet.favoriteCount}', '${tweet.retweetCount}', '']"
+                }
+            }
+        },
                 outputDateFormat.format(start.timeInMillis) +
                         " - " + outputDateFormat.format(end.timeInMillis)
         )
