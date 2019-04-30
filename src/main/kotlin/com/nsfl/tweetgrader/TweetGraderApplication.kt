@@ -83,21 +83,25 @@ class TweetGraderApplication {
 
         documentList.forEach {
             it.body().getElementsByClass("post-normal").forEach { element ->
-                val elementString = element.toString()
-                if (elementString.contains("twitter.com/")) {
+                val username = element.getElementsByClass("normalname").text()
+                val content = element.getElementsByClass("postcolor").toString()
+                if (content.contains("twitter.com/")) {
                     var completed = false
-                    var index = elementString.indexOf("twitter.com/") + 12
+                    var index = content.indexOf("twitter.com/") + 12
                     var twitter = ""
                     while (!completed) {
-                        val char = elementString[index]
+                        val char = content[index]
                         if (char != '"' && char != '<' && char != '/' && char != '?') {
                             twitter += char
                         } else {
                             completed = true
                         }
                         index++
+                        if (index == content.length) {
+                            completed = true
+                        }
                     }
-                    userMap[element.getElementsByClass("normalname").text()] = twitter
+                    userMap[username] = twitter
                 }
             }
         }
