@@ -91,7 +91,7 @@ class TweetGraderApplication {
                     var twitter = ""
                     while (!completed) {
                         val char = content[index]
-                        if (char != '"' && char != '<' && char != '/' && char != '?') {
+                        if (char != '"' && char != '<' && char != '/' && char != '?' && char != ' ') {
                             twitter += char
                         } else {
                             completed = true
