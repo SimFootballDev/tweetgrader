@@ -16,6 +16,7 @@ import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 private const val TWEETS_HTML = "<!doctypehtml><link href=https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css rel=stylesheet><link href=https://cdn.datatables.net/select/1.3.0/css/select.dataTables.min.css rel=stylesheet><link href=https://cdn.datatables.net/buttons/1.5.6/css/buttons.dataTables.min.css rel=stylesheet><script src=https://code.jquery.com/jquery-3.3.1.js></script><script src=https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js></script><script src=https://cdn.datatables.net/select/1.3.0/js/dataTables.select.min.js></script><script src=https://cdn.datatables.net/buttons/1.5.6/js/dataTables.buttons.min.js></script><script class=init>var dataSet = [%s]; \$(document).ready(function() { var table = \$('#table').DataTable({ paging: false, order: [ [0, \"asc\"] ], data: dataSet, columns: [ { title: 'Username' }, { title: 'Account' }, { title: 'Tweet' }, { title: 'Date' }, { title: 'Content' }, { title: 'Likes' }, { title: 'Retweets' }, { title: '' }], columnDefs: [ { orderable: false, className: 'select-checkbox', targets: 7 } ], select: { style: 'multi', selector: 'td:last-child' }, dom: 'Bfrtip', buttons: [ 'selectAll', 'selectNone' , { text: 'Generate payouts', action: function () { var indexList = \"\"; table.rows({ selected: true }).every(function(rowIndex) { indexList += rowIndex + ','; }); window.location.assign('/payouts?queryIndex=%s&tweetIndexList=' + indexList); } } ] }) });</script><style>div{padding-left:5%%;padding-right:5%%;padding-top:.5%%;padding-bottom:.5%%}</style><div><table class=\"cell-border\"id=table width=100%%></table></div>"
 
@@ -67,20 +68,28 @@ class TweetGraderApplication {
             )
         }
 
-        val userMap = HashMap<String, String>()
+        val userMap = HashMap<String, HashSet<String>>()
 
         documentList.forEach {
             it.body().getElementsByClass("post-normal").forEach { element ->
+
                 val username = element.getElementsByClass("normalname").text()
                 val content = element.getElementsByClass("postcolor").toString()
-                if (content.contains("twitter.com/")) {
+
+                val twitterHandleList = ArrayList<String>()
+                var currentIndex = 0
+
+                while (currentIndex < content.length &&
+                        content.substring(currentIndex).contains("twitter.com/")) {
+
                     var completed = false
-                    var index = content.indexOf("twitter.com/") + 12
-                    var twitter = ""
+                    var index = content.indexOf("twitter.com/", currentIndex) + 12
+                    var twitterHandle = ""
+
                     while (!completed) {
                         val char = content[index]
                         if (char != '"' && char != '<' && char != '/' && char != '?' && char != ' ') {
-                            twitter += char
+                            twitterHandle += char
                         } else {
                             completed = true
                         }
@@ -89,8 +98,19 @@ class TweetGraderApplication {
                             completed = true
                         }
                     }
-                    userMap[username] = twitter
+
+                    if (!userMap.entries.flatMap { entry -> entry.value }.contains(twitterHandle)) {
+                        twitterHandleList.add(twitterHandle)
+                    }
+
+                    currentIndex = index
                 }
+
+                if (!userMap.contains(username)) {
+                    userMap[username] = HashSet()
+                }
+
+                userMap[username]?.addAll(twitterHandleList)
             }
         }
 
@@ -112,20 +132,22 @@ class TweetGraderApplication {
         userMap.entries.forEach { entry ->
 
             val username = entry.key
-            val twitterHandle = entry.value
 
-            val statusList = try {
-                twitter.timelines().getUserTimeline(twitterHandle, Paging(1, 200)).map { it }.filter {
-                    it.createdAt.time > start.timeInMillis && it.createdAt.time < end.timeInMillis
+            entry.value.forEach { twitterHandle ->
+
+                val statusList = try {
+                    twitter.timelines().getUserTimeline(twitterHandle, Paging(1, 200)).map { it }.filter {
+                        it.createdAt.time > start.timeInMillis && it.createdAt.time < end.timeInMillis
+                    }
+                } catch (exception: Exception) {
+                    arrayListOf<Status>()
                 }
-            } catch (exception: Exception) {
-                arrayListOf<Status>()
-            }
 
-            if (statusList.isEmpty()) {
-                tweetList.add(Tweet(username, twitterHandle, null))
-            } else {
-                tweetList.addAll(statusList.map { Tweet(username, twitterHandle, it) })
+                if (statusList.isEmpty()) {
+                    tweetList.add(Tweet(username, twitterHandle, null))
+                } else {
+                    tweetList.addAll(statusList.map { Tweet(username, twitterHandle, it) })
+                }
             }
         }
 
@@ -143,7 +165,7 @@ class TweetGraderApplication {
                             "black"
                         }
                         "['${tweet.username.replace("'", "\\'")}', " +
-                                "'<a href=\"https://www.twitter.com/${tweet.twitterHandle}\">Link</a>', " +
+                                "'<a href=\"https://www.twitter.com/${tweet.twitterHandle}\">${tweet.twitterHandle}</a>', " +
                                 "'<a href=\"https://www.twitter.com/${tweet.twitterHandle}/status/${tweet.status.id}\">Link</a>', " +
                                 "'${outputDateFormat.format(tweet.status.createdAt.time)}', " +
                                 "'<font color=\"$color\">${tweet.status.text.replace("'", "\\'").replace("\n", " ")}</font>', " +
@@ -196,10 +218,11 @@ class TweetGraderApplication {
             }
 
             val likedAccounts = try {
-                val twitterHandle = entry.value.first().user.screenName
-                twitter.favorites().getFavorites(twitterHandle, Paging(1, 200)).map { it }.filter {
-                    it.createdAt.time > query.startTime && it.createdAt.time < query.endTime
-                }.joinToString { it.user.screenName }
+                entry.value.distinctBy { it.user.screenName }.joinToString { status ->
+                    twitter.favorites().getFavorites(status.user.screenName, Paging(1, 200)).map { it }.filter {
+                        it.createdAt.time > query.startTime && it.createdAt.time < query.endTime
+                    }.joinToString { it.user.screenName }
+                }
             } catch (exception: Exception) {
                 ""
             }
