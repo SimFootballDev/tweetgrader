@@ -137,11 +137,16 @@ class TweetGraderApplication {
                         "['${tweet.username.replace("'", "\\'")}', '', '', ''," +
                                 "'<font color=\"red\"><b>Could not parse this user’s tweets</b></font>.', '0', '0', '']"
                     } else {
+                        val color = if (tweet.containsOtherLeague()) {
+                            "red"
+                        } else {
+                            "black"
+                        }
                         "['${tweet.username.replace("'", "\\'")}', " +
                                 "'<a href=\"https://www.twitter.com/${tweet.twitterHandle}\">Link</a>', " +
                                 "'<a href=\"https://www.twitter.com/${tweet.twitterHandle}/status/${tweet.status.id}\">Link</a>', " +
                                 "'${outputDateFormat.format(tweet.status.createdAt.time)}', " +
-                                "'${tweet.status.text.replace("'", "\\'").replace("\n", " ")}', " +
+                                "'<font color=\"$color\">${tweet.status.text.replace("'", "\\'").replace("\n", " ")}</font>', " +
                                 "'${tweet.status.favoriteCount}', " +
                                 "'${tweet.status.retweetCount}', " +
                                 "'']"
@@ -254,7 +259,16 @@ class TweetGraderApplication {
             val username: String,
             val twitterHandle: String,
             val status: Status?
-    )
+    ) {
+        fun containsOtherLeague(): Boolean {
+            arrayListOf("baseball", "pbe", "hockey", "shl", "pfsl").forEach {
+                if (status?.text.orEmpty().contains(it, true)) {
+                    return true
+                }
+            }
+            return false
+        }
+    }
 
     class Payout(
             val username: String,
