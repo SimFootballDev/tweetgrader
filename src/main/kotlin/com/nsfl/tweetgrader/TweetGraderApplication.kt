@@ -159,7 +159,7 @@ class TweetGraderApplication {
                         "['${tweet.username.replace("'", "\\'")}', '', '', ''," +
                                 "'<font color=\"red\"><b>Could not parse this user’s tweets</b></font>.', '0', '0', '']"
                     } else {
-                        val color = if (tweet.containsOtherLeague()) {
+                        val color = if (tweet.containsPBESim()) {
                             "red"
                         } else {
                             "black"
@@ -243,9 +243,9 @@ class TweetGraderApplication {
         val perTweetPayout = payoutList.joinToString("<br>") { payout ->
             payout.username + " " +
                     if (payout.payableTweetCount > 3) {
-                        600000 + ((payout.payableTweetCount - 3) * 50000)
+                        750000 + ((payout.payableTweetCount - 3) * 50000)
                     } else {
-                        payout.payableTweetCount * 200000
+                        payout.payableTweetCount * 250000
                     }
         }
 
@@ -283,14 +283,7 @@ class TweetGraderApplication {
             val twitterHandle: String,
             val status: Status?
     ) {
-        fun containsOtherLeague(): Boolean {
-            arrayListOf("baseball", "pbe", "hockey", "shl", "pfsl").forEach {
-                if (status?.text.orEmpty().contains(it, true)) {
-                    return true
-                }
-            }
-            return false
-        }
+        fun containsPBESim() = status?.text.orEmpty().contains("#pbesim", true)
     }
 
     class Payout(
