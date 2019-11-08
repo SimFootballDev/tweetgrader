@@ -227,13 +227,21 @@ class TweetGraderApplication {
                 ""
             }
 
+            var likedRetweetedSelf = false
+            entry.value.map { it.user.screenName }.distinct().forEach {
+                if (retweetedAccounts.contains(it) || likedAccounts.contains(it)) {
+                    likedRetweetedSelf = true
+                }
+            }
+
             payoutList.add(
                     Payout(
                             entry.key,
                             payableTweetCount,
                             totalRetweetLikeCount,
                             retweetedAccounts,
-                            likedAccounts
+                            likedAccounts,
+                            likedRetweetedSelf
                     )
             )
         }
@@ -258,9 +266,18 @@ class TweetGraderApplication {
         val retweetLikeEligibility = payoutList
                 .sortedByDescending { it.totalRetweetLikeCount }
                 .joinToString("<br>") { payout ->
-                    payout.username +
+
+                    val color = if (payout.likedRetweetedSelf) {
+                        "red"
+                    } else {
+                        "black"
+                    }
+
+                    "<font color=\"$color\">" +
+                            "<b>${payout.username} -></b>" +
                             " <b>Retweeted Accounts:</b> " + payout.retweetedAccounts +
-                            " <b>Liked Accounts:</b> " + payout.likedAccounts
+                            " <b>Liked Accounts:</b> " + payout.likedAccounts +
+                            "</font>"
                 }
 
         return "$dateRange<br><br>$perTweetPayout<br><br>$retweetLikeCountPayout<br><br>$retweetLikeEligibility"
@@ -298,7 +315,8 @@ class TweetGraderApplication {
             val payableTweetCount: Int,
             val totalRetweetLikeCount: Int,
             val retweetedAccounts: String,
-            val likedAccounts: String
+            val likedAccounts: String,
+            val likedRetweetedSelf: Boolean
     )
 }
 
