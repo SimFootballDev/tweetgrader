@@ -51,7 +51,7 @@ class TweetGraderApplication {
         documentList.add(firstDocument)
 
         val pageCount = try {
-            val startIndex = firstDocumentBody.indexOf("Pages:</a>")
+            val startIndex = firstDocumentBody.indexOf("Pages (")
             val endIndex = firstDocumentBody.indexOf(")", startIndex)
             firstDocumentBody.substring(startIndex, endIndex)
                     .replace(Pattern.compile("[^0-9.]").toRegex(), "")
@@ -60,10 +60,10 @@ class TweetGraderApplication {
             1
         }
 
-        for (i in 1..(pageCount - 1)) {
+        for (i in 2..(pageCount)) {
             documentList.add(
                     Jsoup.connect(
-                            "$postUrl&st=${i * 14}"
+                            "$postUrl&page=${i}"
                     ).get()
             )
         }
@@ -71,10 +71,10 @@ class TweetGraderApplication {
         val userMap = HashMap<String, HashSet<String>>()
 
         documentList.forEach {
-            it.body().getElementsByClass("post-normal").forEach { element ->
+            it.body().getElementsByClass("post classic ").forEach { element ->
 
-                val username = element.getElementsByClass("normalname").text()
-                val content = element.getElementsByClass("postcolor").toString()
+                val username = element.getElementsByClass("largetext").text()
+                val content = element.getElementsByClass("post_body scaleimages").toString()
 
                 val twitterHandleList = ArrayList<String>()
                 var currentIndex = 0
